@@ -19,14 +19,25 @@ if __name__ == '__main__':
     # Pass all the remaining arguments to SSH
     ssh = ['ssh'] + sys.argv[1:]
 
-    print('Reading config...')
-    broken_config = subprocess.check_output(ssh + ['cat /tmp/system.cfg'])
-    fixed_config = mutf8_to_utf8(broken_config)
+    # We need to fix both config files
+    for filename in ['/etc/aaa1.cfg', '/tmp/system.cfg']:
+        print(f'Fixing {filename}...')
 
-    if fixed_config == broken_config:
-        print('Configuration is already OK!')
-        sys.exit(0)
+        print(' * Reading contents...')
+        broken_file = subprocess.check_output(ssh + [f'cat {filename}'])
+        fixed_file = mutf8_to_utf8(broken_file)
 
-    print('Installing new configuration...')
-    with subprocess.Popen(ssh + ['cat > /tmp/system.cfg && /usr/bin/syswrapper.sh save-config && reboot'], stdin=subprocess.PIPE) as process:
-        process.stdin.write(fixed_config)
+        if fixed_file == broken_file:
+            print(f' * File is already OK!')
+            continue
+
+        print(f' * Writing fixed contents...')
+        with subprocess.Popen(ssh + [f'cat > {filename}'], stdin=subprocess.PIPE) as process:
+            process.stdin.write(fixed_file)
+
+    print('Saving config...')
+    subprocess.check_output(ssh + ['/usr/bin/syswrapper.sh save-config'])
+
+    # No need to reboot
+    print('Reloading hostapd...')
+    subprocess.check_output(ssh + ['pkill -HUP hostapd'])
