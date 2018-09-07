@@ -35,9 +35,5 @@ if __name__ == '__main__':
         with subprocess.Popen(ssh + [f'cat > {filename}'], stdin=subprocess.PIPE) as process:
             process.stdin.write(fixed_file)
 
-    print('Saving config...')
-    subprocess.check_output(ssh + ['/usr/bin/syswrapper.sh save-config'])
-
-    # No need to reboot
-    print('Reloading hostapd...')
-    subprocess.check_output(ssh + ['pkill -HUP hostapd'])
+    print('Saving config and reloading hostapd...')
+    subprocess.check_output(ssh + ['/usr/bin/syswrapper.sh save-config && pkill -HUP hostapd'])
